@@ -26,29 +26,45 @@ export default function Home() {
           Smart Hiring & Communication Automation powered by Artificial Intelligence.
         </p>
 
-        {/* Animated Button */}
-        <motion.a
-          href="/dashboard"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, type: "spring", stiffness: 120 }}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative inline-flex items-center justify-center px-10 py-4 text-lg font-semibold text-white rounded-2xl overflow-hidden group"
-        >
-          {/* Gradient Background */}
-          <span className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 bg-[length:200%_200%] animate-gradient rounded-2xl"></span>
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <motion.a
+            href="/auth/login"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, type: "spring", stiffness: 120 }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative inline-flex items-center justify-center px-10 py-4 text-lg font-semibold text-white rounded-2xl overflow-hidden group"
+          >
+            {/* Gradient Background */}
+            <span className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 bg-[length:200%_200%] animate-gradient rounded-2xl"></span>
 
-          {/* Glow */}
-          <span className="absolute inset-0 rounded-2xl blur-xl opacity-40 group-hover:opacity-70 transition duration-500 bg-cyan-400"></span>
+            {/* Glow */}
+            <span className="absolute inset-0 rounded-2xl blur-xl opacity-40 group-hover:opacity-70 transition duration-500 bg-cyan-400"></span>
 
-          {/* Shine */}
-          <span className="absolute -left-10 top-0 h-full w-10 bg-white/20 skew-x-12 group-hover:animate-shine"></span>
+            {/* Shine */}
+            <span className="absolute -left-10 top-0 h-full w-10 bg-white/20 skew-x-12 group-hover:animate-shine"></span>
 
-          <span className="relative z-10 tracking-wide">
-            Go To Dashboard →
-          </span>
-        </motion.a>
+            <span className="relative z-10 tracking-wide">
+              Login →
+            </span>
+          </motion.a>
+
+          <motion.a
+            href="/auth/signup"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, type: "spring", stiffness: 120 }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative inline-flex items-center justify-center px-10 py-4 text-lg font-semibold text-cyan-600 bg-white/80 backdrop-blur-lg rounded-2xl overflow-hidden group border-2 border-cyan-500"
+          >
+            <span className="relative z-10 tracking-wide">
+              Sign Up
+            </span>
+          </motion.a>
+        </div>
       </motion.div>
 
       {/* Feature Cards */}

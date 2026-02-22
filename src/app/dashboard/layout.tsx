@@ -9,6 +9,8 @@ import {
   Info,
   Mail,
   Menu,
+  Briefcase,
+  Users,
 } from "lucide-react";
 
 export default function DashboardLayout({
@@ -50,6 +52,20 @@ export default function DashboardLayout({
             label="Home"
             open={open}
             href="/dashboard"
+          />
+
+          <SidebarLink
+            icon={<Briefcase size={20} />}
+            label="Jobs"
+            open={open}
+            href="/dashboard/jobs"
+          />
+
+          <SidebarLink
+            icon={<Users size={20} />}
+            label="Candidates"
+            open={open}
+            href="/dashboard/candidates"
           />
 
           <SidebarLink

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Users,
   Briefcase,
@@ -11,6 +12,7 @@ import {
   Brain,
   MailCheck,
   BarChart3,
+  ArrowRight,
 } from "lucide-react";
 import {
   LineChart,
@@ -25,18 +27,61 @@ import {
 export default function DashboardHome() {
   const [candidates, setCandidates] = useState(0);
   const [jobs, setJobs] = useState(0);
-  const [score, setScore] = useState(0);
+  const [avgScore, setAvgScore] = useState(0);
   const [search, setSearch] = useState("");
+  const [recentCandidates, setRecentCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCandidates((prev) => (prev < 124 ? prev + 2 : 124));
-      setJobs((prev) => (prev < 18 ? prev + 1 : 18));
-      setScore((prev) => (prev < 87 ? prev + 1 : 87));
-    }, 25);
-
-    return () => clearInterval(interval);
+    loadDashboardData();
   }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      const userStr = localStorage.getItem("hiregen_user");
+      if (!userStr) {
+        setLoading(false);
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+
+      // Load jobs
+      const jobsResponse = await fetch(`/api/jobs/create?userId=${user.id}`);
+      const jobsData = await jobsResponse.json();
+      const jobsList = jobsData.success ? jobsData.jobs || [] : [];
+      setJobs(jobsList.length);
+
+      // Load candidates
+      const candidatesResponse = await fetch(
+        `/api/candidates/list?userId=${user.id}`
+      );
+      const candidatesData = await candidatesResponse.json();
+      const candidatesList = candidatesData.success
+        ? candidatesData.candidates || []
+        : [];
+      setCandidates(candidatesList.length);
+
+      // Calculate average score
+      if (candidatesList.length > 0) {
+        const scores = candidatesList
+          .map((c: any) => c.matchScore)
+          .filter((s: any) => s !== null && s !== undefined);
+        if (scores.length > 0) {
+          const avg =
+            scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
+          setAvgScore(Math.round(avg));
+        }
+      }
+
+      // Get recent candidates (top 5)
+      setRecentCandidates(candidatesList.slice(0, 5));
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const chartData = [
     { month: "Jan", value: 20 },
@@ -46,14 +91,8 @@ export default function DashboardHome() {
     { month: "May", value: 70 },
   ];
 
-  const candidateList = [
-    { name: "Ali Khan", status: "Shortlisted", role: "Frontend Dev" },
-    { name: "Sara Ahmed", status: "Review", role: "Backend Dev" },
-    { name: "Usman Tariq", status: "Rejected", role: "UI/UX Designer" },
-  ];
-
-  const filteredCandidates = candidateList.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+  const filteredCandidates = recentCandidates.filter((c) =>
+    c.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -71,39 +110,73 @@ export default function DashboardHome() {
 
       {/* STATS */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatCard title="Total Candidates" value={candidates} icon={<Users />} />
-        <StatCard title="Jobs Posted" value={jobs} icon={<Briefcase />} />
-        <StatCard title="Avg Match Score" value={`${score}%`} icon={<TrendingUp />} />
+        <StatCard
+          title="Total Candidates"
+          value={loading ? "..." : candidates}
+          icon={<Users />}
+        />
+        <StatCard
+          title="Jobs Posted"
+          value={loading ? "..." : jobs}
+          icon={<Briefcase />}
+        />
+        <StatCard
+          title="Avg Match Score"
+          value={loading ? "..." : `${avgScore}%`}
+          icon={<TrendingUp />}
+        />
       </section>
 
-      {/* AI TOOLS */}
+      {/* QUICK ACTIONS */}
       <section>
         <h2 className="text-2xl font-semibold text-cyan-600 mb-6">
-          AI Tools
+          Quick Actions
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <ToolCard icon={<Brain />} title="Resume Analysis" />
-          <ToolCard icon={<MailCheck />} title="Email Generator" />
-          <ToolCard icon={<BarChart3 />} title="Skill Gap Detection" />
-        </div>
-      </section>
+          <Link
+            href="/dashboard/jobs"
+            className="bg-white shadow-lg p-6 rounded-2xl hover:shadow-xl transition hover:-translate-y-1 cursor-pointer group"
+          >
+            <div className="text-cyan-600 mb-4">
+              <Briefcase size={32} />
+            </div>
+            <h4 className="font-semibold text-gray-800 mb-2">Create Job</h4>
+            <p className="text-gray-500 text-sm mb-3">
+              Post a new job opening and define requirements.
+            </p>
+            <span className="text-cyan-600 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
+              Get Started <ArrowRight size={16} />
+            </span>
+          </Link>
 
-      {/* RESUME UPLOAD */}
-      <section>
-        <h2 className="text-2xl font-semibold text-cyan-600 mb-6">
-          Upload Resume
-        </h2>
+          <Link
+            href="/dashboard/candidates"
+            className="bg-white shadow-lg p-6 rounded-2xl hover:shadow-xl transition hover:-translate-y-1 cursor-pointer group"
+          >
+            <div className="text-cyan-600 mb-4">
+              <Users size={32} />
+            </div>
+            <h4 className="font-semibold text-gray-800 mb-2">Upload CV</h4>
+            <p className="text-gray-500 text-sm mb-3">
+              Upload candidate resumes for AI analysis and scoring.
+            </p>
+            <span className="text-cyan-600 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
+              Upload Now <ArrowRight size={16} />
+            </span>
+          </Link>
 
-        <div className="bg-white shadow-lg p-6 rounded-2xl">
-          <input
-            type="file"
-            className="border p-3 rounded-lg w-full mb-4"
-          />
-
-          <button className="bg-cyan-600 text-white px-6 py-2 rounded-lg hover:bg-cyan-700 transition">
-            Analyze Resume
-          </button>
+          <div className="bg-white shadow-lg p-6 rounded-2xl hover:shadow-xl transition hover:-translate-y-1">
+            <div className="text-cyan-600 mb-4">
+              <Brain size={32} />
+            </div>
+            <h4 className="font-semibold text-gray-800 mb-2">
+              AI-Powered Analysis
+            </h4>
+            <p className="text-gray-500 text-sm">
+              Automatic resume parsing, skill matching, and candidate scoring.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -159,15 +232,39 @@ export default function DashboardHome() {
               </tr>
             </thead>
             <tbody>
-              {filteredCandidates.map((c, index) => (
-                <tr key={index} className="border-b hover:bg-gray-50 transition">
-                  <td className="py-3 font-medium">{c.name}</td>
-                  <td>
-                    <StatusBadge status={c.status} />
+              {filteredCandidates.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-8 text-center text-gray-500">
+                    {loading
+                      ? "Loading..."
+                      : "No candidates yet. Upload a CV to get started!"}
                   </td>
-                  <td>{c.role}</td>
                 </tr>
-              ))}
+              ) : (
+                filteredCandidates.map((c, index) => (
+                  <tr key={c.id || index} className="border-b hover:bg-gray-50 transition">
+                    <td className="py-3 font-medium">{c.name || "Unknown"}</td>
+                    <td>
+                      <StatusBadge
+                        status={
+                          c.matchScore
+                            ? c.matchScore >= 70
+                              ? "Shortlisted"
+                              : c.matchScore >= 50
+                              ? "Review"
+                              : "Rejected"
+                            : "Pending"
+                        }
+                      />
+                    </td>
+                    <td>
+                      {c.matchScore !== null && c.matchScore !== undefined
+                        ? `${c.matchScore}% match`
+                        : "Not scored"}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -186,14 +283,26 @@ export default function DashboardHome() {
         </div>
       </section>
 
-      {/* QUICK ACTIONS */}
+      {/* MORE ACTIONS */}
       <section className="flex flex-col sm:flex-row gap-4">
-        <a
-          href="/dashboard/analytics"
+        <Link
+          href="/dashboard/jobs"
           className="bg-cyan-600 px-6 py-3 rounded-xl text-white font-semibold hover:bg-cyan-700 transition text-center shadow-md hover:shadow-lg"
         >
-          View Full Analytics
-        </a>
+          Manage Jobs
+        </Link>
+        <Link
+          href="/dashboard/candidates"
+          className="bg-white border-2 border-cyan-600 px-6 py-3 rounded-xl text-cyan-600 font-semibold hover:bg-cyan-50 transition text-center shadow-md hover:shadow-lg"
+        >
+          View All Candidates
+        </Link>
+        <Link
+          href="/dashboard/analytics"
+          className="bg-white border-2 border-cyan-600 px-6 py-3 rounded-xl text-cyan-600 font-semibold hover:bg-cyan-50 transition text-center shadow-md hover:shadow-lg"
+        >
+          View Analytics
+        </Link>
       </section>
 
     </div>
@@ -212,17 +321,6 @@ function StatCard({ title, value, icon }: any) {
   );
 }
 
-function ToolCard({ icon, title }: any) {
-  return (
-    <div className="bg-white shadow-lg p-6 rounded-2xl hover:shadow-xl transition hover:-translate-y-1 cursor-pointer">
-      <div className="text-cyan-600 mb-4">{icon}</div>
-      <h4 className="font-semibold text-gray-800">{title}</h4>
-      <p className="text-gray-500 text-sm mt-2">
-        Launch AI tool and connect with backend API.
-      </p>
-    </div>
-  );
-}
 
 function StatusBadge({ status }: { status: string }) {
   const color =
