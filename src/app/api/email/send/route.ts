@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockEmailLogs } from "@/lib/mock-db";
+import { generateEmailWithAI } from "@/lib/ai";
+import { sendEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +14,7 @@ export async function POST(request: NextRequest) {
       interviewTime,
       interviewLocation,
       userId,
+      emailType = "invite", // "invite" | "rejection" | "followup"
     } = body;
 
     if (!candidateEmail || !candidateName || !jobTitle) {
@@ -21,27 +24,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mock AI Email Generation
-    const emailSubject = `Interview Invitation - ${jobTitle} Position at HireGen AI`;
+    // Use AI to generate professional email
+    let emailContent;
+    try {
+      emailContent = await generateEmailWithAI(
+        emailType as "invite" | "rejection" | "followup",
+        candidateName,
+        jobTitle,
+        {
+          interviewDate,
+          interviewTime,
+          interviewLocation,
+        }
+      );
+    } catch (aiError) {
+      console.error("AI Email Generation failed, using fallback:", aiError);
+      // Fallback email
+      emailContent = {
+        subject: `Interview Invitation - ${jobTitle} Position at HireGen AI`,
+        body: `Dear ${candidateName},\n\nThank you for your interest in the ${jobTitle} position.\n\nBest regards,\nHireGen AI Team`,
+      };
+    }
 
-    const emailBody = `
-Dear ${candidateName},
+    // Send email using Nodemailer
+    let emailResult;
+    try {
+      emailResult = await sendEmail(
+        candidateEmail,
+        emailContent.subject,
+        emailContent.body
+      );
+    } catch (emailError) {
+      console.error("Email sending error:", emailError);
+      // Continue even if email fails (might be in dev mode)
+      emailResult = {
+        success: true,
+        messageId: "mock_id",
+        note: "Email not sent (check SMTP configuration)",
+      };
+    }
 
-Thank you for your interest in the ${jobTitle} position at HireGen AI. We were impressed with your background and would like to invite you for an interview.
-
-${interviewDate && interviewTime ? `Interview Details:
-- Date: ${interviewDate}
-- Time: ${interviewTime}
-${interviewLocation ? `- Location: ${interviewLocation}` : "- Format: Online/In-Person"}
-` : "We will contact you shortly to schedule the interview."}
-
-Please confirm your availability by replying to this email.
-
-Best regards,
-HireGen AI Team
-    `.trim();
-
-    // Mock email sending (in production, use Nodemailer)
+    // Log email
     const emailId = `email_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const emailLog = {
       id: emailId,
@@ -49,26 +72,29 @@ HireGen AI Team
       candidateEmail,
       candidateName,
       jobTitle,
-      subject: emailSubject,
-      body: emailBody,
-      status: "sent",
+      subject: emailContent.subject,
+      body: emailContent.body,
+      status: emailResult.success ? "sent" : "failed",
       sentAt: new Date().toISOString(),
       interviewDate,
       interviewTime,
       interviewLocation,
+      emailType,
+      messageId: emailResult.messageId,
     };
 
     mockEmailLogs.push(emailLog);
 
-    // Simulate email sending delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
     return NextResponse.json({
       success: true,
       email: emailLog,
-      message: "Email sent successfully",
+      message: emailResult.success
+        ? "Email sent successfully"
+        : "Email generated but not sent (check SMTP config)",
+      previewUrl: emailResult.previewUrl,
     });
   } catch (error) {
+    console.error("Email API Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -11,6 +11,7 @@ import {
   Menu,
   Briefcase,
   Users,
+  Sparkles,
 } from "lucide-react";
 
 export default function DashboardLayout({
@@ -39,6 +40,7 @@ export default function DashboardLayout({
 
           <button
             onClick={() => setOpen(!open)}
+            aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
             className="p-1 rounded-md hover:bg-cyan-100 transition"
           >
             <Menu size={24} />
@@ -66,6 +68,13 @@ export default function DashboardLayout({
             label="Candidates"
             open={open}
             href="/dashboard/candidates"
+          />
+
+          <SidebarLink
+            icon={<Sparkles size={20} />}
+            label="Tools"
+            open={open}
+            href="/dashboard/tools"
           />
 
           <SidebarLink

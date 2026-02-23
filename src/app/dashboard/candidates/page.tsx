@@ -129,10 +129,14 @@ function CandidatesPageContent() {
           candidateId: candidate.id,
           jobId: selectedJob,
           candidate: {
+            name: candidate.name,
             skills: candidate.skills,
             experience: candidate.experience,
+            summary: candidate.summary,
           },
           job: {
+            title: job?.title || "",
+            description: job?.description || "",
             requiredSkills: job?.requiredSkills || [],
             experienceRequired: job?.experienceRequired || 0,
           },
@@ -165,9 +169,10 @@ function CandidatesPageContent() {
         body: JSON.stringify({
           jobTitle: job.title,
           jobDescription: job.description,
-          candidateSkills: candidate.skills,
+          candidateSkills: candidate.skills || [],
           missingSkills: candidate.missingSkills || [],
           candidateName: candidate.name,
+          candidateExperience: candidate.experience || 0,
         }),
       });
 

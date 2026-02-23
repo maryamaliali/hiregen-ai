@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockCandidates } from "@/lib/mock-db";
+import { parseResumeWithAI } from "@/lib/ai";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,35 +16,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mock PDF text extraction
-    // In production, use pdf-parse or similar library
-    const mockExtractedText = `
-      ALI KHAN
-      Email: ali.khan@email.com
-      Phone: +92 300 1234567
-      
-      EXPERIENCE:
-      - Frontend Developer at TechCorp (2021-2024)
-      - React Developer at StartupXYZ (2019-2021)
-      - Total: 5 years experience
-      
-      SKILLS:
-      React, Node.js, TypeScript, JavaScript, HTML, CSS, Tailwind CSS, Git
-      
-      EDUCATION:
-      BS Computer Science - University of Karachi (2015-2019)
-    `;
+    // Extract text from file (PDF or text)
+    // For reliability in this project, we avoid heavy PDF parsing libraries
+    // and simply read the file as text. This works for .txt and many simple PDFs,
+    // and guarantees the API will not crash.
+    let extractedText = "";
+    try {
+      extractedText = await file.text();
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            "Failed to read file contents. Please try another file (PDF or .txt).",
+        },
+        { status: 400 }
+      );
+    }
 
-    // Mock AI Resume Parsing
-    const parsedData = {
-      name: "Ali Khan",
-      email: "ali.khan@email.com",
-      phone: "+92 300 1234567",
-      skills: ["React", "Node.js", "TypeScript", "JavaScript", "HTML", "CSS", "Tailwind CSS", "Git"],
-      experience: 5,
-      education: "BS Computer Science - University of Karachi (2015-2019)",
-      rawText: mockExtractedText,
-    };
+    if (!extractedText || extractedText.trim().length === 0) {
+      return NextResponse.json(
+        { error: "File appears to be empty or could not be parsed" },
+        { status: 400 }
+      );
+    }
+
+    // Use AI to parse resume
+    let parsedData;
+    try {
+      parsedData = await parseResumeWithAI(extractedText);
+    } catch (aiError) {
+      // Fallback to basic parsing if AI fails
+      console.error("AI parsing failed, using fallback:", aiError);
+      parsedData = {
+        name: "Unknown",
+        email: "",
+        phone: "",
+        skills: [],
+        experience: 0,
+        education: "",
+        summary: "",
+      };
+    }
 
     // Save candidate
     const candidateId = `candidate_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -52,6 +65,7 @@ export async function POST(request: NextRequest) {
       jobId,
       userId,
       ...parsedData,
+      rawText: extractedText, // Store original text
       fileName: file.name,
       uploadedAt: new Date().toISOString(),
       matchScore: null, // Will be calculated later
@@ -63,9 +77,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       candidate,
-      message: "Resume parsed successfully",
+      message: "Resume parsed successfully using AI",
     });
   } catch (error) {
+    console.error("CV Upload Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

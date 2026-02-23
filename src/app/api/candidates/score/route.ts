@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockCandidates, mockJobs } from "@/lib/mock-db";
+import { scoreCandidateWithAI } from "@/lib/ai";
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,48 +40,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mock AI Scoring Algorithm
-    const candidateSkills = candidate.skills.map((s: string) =>
-      s.toLowerCase()
-    );
-    const requiredSkills = job.requiredSkills.map((s: string) =>
-      s.toLowerCase()
-    );
+    // Use AI for intelligent candidate scoring
+    let scoringResult;
+    try {
+      scoringResult = await scoreCandidateWithAI(
+        {
+          name: candidate.name || "Unknown",
+          skills: candidate.skills || [],
+          experience: candidate.experience || 0,
+          summary: candidate.summary || "",
+        },
+        {
+          title: job.title,
+          description: job.description,
+          requiredSkills: job.requiredSkills,
+          experienceRequired: job.experienceRequired,
+        }
+      );
+    } catch (aiError) {
+      console.error("AI Scoring failed, using fallback:", aiError);
+      // Fallback to basic scoring if AI fails
+      const candidateSkills = (candidate.skills || []).map((s: string) =>
+        s.toLowerCase()
+      );
+      const requiredSkills = job.requiredSkills.map((s: string) =>
+        s.toLowerCase()
+      );
 
-    // Calculate match score
-    const matchedSkills = requiredSkills.filter((skill: string) =>
-      candidateSkills.some((cs: string) => cs.includes(skill) || skill.includes(cs))
-    );
+      const matchedSkills = requiredSkills.filter((skill: string) =>
+        candidateSkills.some((cs: string) => cs.includes(skill) || skill.includes(cs))
+      );
 
-    const skillMatchPercentage = (matchedSkills.length / requiredSkills.length) * 100;
+      const skillMatchPercentage =
+        (matchedSkills.length / requiredSkills.length) * 100;
+      const experienceScore = Math.min(
+        ((candidate.experience || 0) / job.experienceRequired) * 30,
+        30
+      );
 
-    // Experience score (max 30 points)
-    const experienceScore = Math.min(
-      (candidate.experience / job.experienceRequired) * 30,
-      30
-    );
-
-    // Final match score
-    const matchScore = Math.round(
-      Math.min(skillMatchPercentage * 0.7 + experienceScore, 100)
-    );
-
-    // Missing skills
-    const missingSkills = requiredSkills.filter(
-      (skill: string) =>
-        !candidateSkills.some((cs: string) => cs.includes(skill) || skill.includes(cs))
-    );
-
-    // Strength areas
-    const strengthAreas = matchedSkills;
-
-    const scoringResult = {
-      matchScore,
-      missingSkills,
-      strengthAreas,
-      skillMatch: Math.round(skillMatchPercentage),
-      experienceMatch: Math.round(experienceScore),
-    };
+      scoringResult = {
+        matchScore: Math.round(
+          Math.min(skillMatchPercentage * 0.7 + experienceScore, 100)
+        ),
+        missingSkills: requiredSkills.filter(
+          (skill: string) =>
+            !candidateSkills.some((cs: string) => cs.includes(skill) || skill.includes(cs))
+        ),
+        strengthAreas: matchedSkills,
+        recommendation: "review",
+        reasoning: "Basic scoring algorithm",
+      };
+    }
 
     // Update candidate in database with score
     const candidateIndex = mockCandidates.findIndex(
@@ -89,10 +99,16 @@ export async function POST(request: NextRequest) {
     if (candidateIndex !== -1) {
       mockCandidates[candidateIndex] = {
         ...mockCandidates[candidateIndex],
-        matchScore,
-        missingSkills,
-        strengthAreas,
-        status: matchScore >= 70 ? "shortlisted" : matchScore >= 50 ? "review" : "pending",
+        matchScore: scoringResult.matchScore,
+        missingSkills: scoringResult.missingSkills,
+        strengthAreas: scoringResult.strengthAreas,
+        status:
+          scoringResult.recommendation === "shortlisted"
+            ? "shortlisted"
+            : scoringResult.recommendation === "rejected"
+            ? "rejected"
+            : "review",
+        aiReasoning: scoringResult.reasoning,
       };
     }
 
