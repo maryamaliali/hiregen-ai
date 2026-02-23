@@ -29,7 +29,7 @@ export default function Contact() {
             <Mail className="text-cyan-600 mt-1" />
             <div>
               <p className="font-medium text-gray-800">Email</p>
-              <p className="text-gray-600 text-sm">hiregenai@email.com</p>
+              <p className="text-gray-600 text-sm">maryamamjad621@gmail.com</p>
             </div>
           </div>
 
@@ -37,7 +37,7 @@ export default function Contact() {
             <Phone className="text-cyan-600 mt-1" />
             <div>
               <p className="font-medium text-gray-800">Phone</p>
-              <p className="text-gray-600 text-sm">+92 300 0000000</p>
+              <p className="text-gray-600 text-sm">+92 3147390062</p>
             </div>
           </div>
 
