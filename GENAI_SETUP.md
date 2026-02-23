@@ -5,6 +5,7 @@
 This system supports **multiple AI providers** for all AI-powered features:
 
 - **Hugging Face Inference API** (recommended for “free / low-cost” usage)
+- **Gemini (Google Generative AI)** (good free tier)
 - **OpenAI** (optional fallback)
 
 1. **CV Upload & Parsing** - AI extracts structured data from resumes
@@ -15,27 +16,31 @@ This system supports **multiple AI providers** for all AI-powered features:
 
 ## 📋 Prerequisites
 
-1. **Hugging Face API Key** - Get one from [Hugging Face Access Tokens](https://huggingface.co/settings/tokens)
-2. **OpenAI API Key** (optional) - Get one from [OpenAI Platform](https://platform.openai.com/api-keys)
-3. **Email Configuration** (Optional) - For sending real emails via Nodemailer
+1. **Hugging Face API Key** (optional) - Get one from [Hugging Face Access Tokens](https://huggingface.co/settings/tokens)
+2. **Gemini API Key** (recommended free) - Get one from [Google AI Studio](https://aistudio.google.com/)
+3. **OpenAI API Key** (optional) - Get one from [OpenAI Platform](https://platform.openai.com/api-keys)
+4. **Email Configuration** (Optional) - For sending real emails via Nodemailer
 
 ## ⚙️ Environment Setup
 
 Create a `.env.local` file in the root directory:
 
 ```env
-# Recommended: Hugging Face API Key
-HF_API_KEY=hf_your_huggingface_token_here
+# --- AI Provider selection ---
 
-# Optional: Force provider selection
-# AI_PROVIDER=hf
-# AI_PROVIDER=openai
+# Recommend: Gemini (Google Generative AI) - free tier
+GEMINI_API_KEY=your_gemini_api_key_here
+# GEMINI_MODEL=gemini-1.5-flash
 
-# Optional: Hugging Face model (text generation)
+# Optional: Hugging Face
+# HF_API_KEY=hf_your_huggingface_token_here
 # HF_TEXT_MODEL=google/flan-t5-large
 
-# Optional: OpenAI API Key (fallback)
-OPENAI_API_KEY=sk-your-openai-api-key-here
+# Optional: OpenAI fallback
+# OPENAI_API_KEY=sk-your-openai-api-key-here
+
+# Force provider (else: HF > Gemini > OpenAI)
+AI_PROVIDER=gemini
 
 # Optional: Email Configuration (for sending real emails)
 EMAIL_HOST=smtp.gmail.com
@@ -50,19 +55,27 @@ NODE_ENV=development
 
 ## 🔧 Configuration
 
-### OpenAI API
+### Gemini (Google Generative AI) – Recommended
 
-1. Sign up at [OpenAI Platform](https://platform.openai.com)
+1. Go to [Google AI Studio](https://aistudio.google.com/)
 2. Create an API key
-3. Add it to `.env.local` as `OPENAI_API_KEY`
-4. The system uses `gpt-4o-mini` model (cost-effective)
+3. Add it to `.env.local` as `GEMINI_API_KEY`
+4. (Optional) set `GEMINI_MODEL` (default is `gemini-1.5-flash`)
+5. Set `AI_PROVIDER=gemini` to always use Gemini
 
-### Hugging Face Inference API (Recommended)
+### Hugging Face Inference API
 
 1. Create an access token in Hugging Face settings
 2. Add it to `.env.local` as `HF_API_KEY`
 3. (Optional) set `AI_PROVIDER=hf` to always use Hugging Face
 4. (Optional) set `HF_TEXT_MODEL` (default is `google/flan-t5-large`)
+
+### OpenAI API (Optional)
+
+1. Sign up at [OpenAI Platform](https://platform.openai.com)
+2. Create an API key
+3. Add it to `.env.local` as `OPENAI_API_KEY`
+4. The system uses `gpt-4o-mini` model when OpenAI is selected
 
 ### Email Setup (Optional)
 

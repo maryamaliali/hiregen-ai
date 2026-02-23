@@ -1,22 +1,26 @@
 import OpenAI from "openai";
 import { hasHfConfig, hfGenerateJson } from "@/lib/hf";
+import { geminiGenerateJson, hasGeminiConfig } from "@/lib/gemini";
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-function getAiProvider(): "hf" | "openai" {
+function getAiProvider(): "hf" | "openai" | "gemini" {
   const configured = (process.env.AI_PROVIDER || "").toLowerCase();
   if (configured === "hf") return "hf";
   if (configured === "openai") return "openai";
+  if (configured === "gemini") return "gemini";
+
   if (hasHfConfig()) return "hf";
+  if (hasGeminiConfig()) return "gemini";
   return "openai";
 }
 
 function requireOpenAI() {
   if (!openai) {
     throw new Error(
-      "OPENAI_API_KEY is missing and AI_PROVIDER is not set to hf."
+      "OPENAI_API_KEY is missing and AI_PROVIDER is not set to hf or gemini."
     );
   }
   return openai;
@@ -48,27 +52,28 @@ Return only the JSON object, no markdown, no code blocks, just the JSON.`;
     const parsed =
       provider === "hf"
         ? await hfGenerateJson(prompt)
-        : (() => {
+        : provider === "gemini"
+        ? await geminiGenerateJson(
+            prompt,
+            "You are an expert at parsing resumes. Extract structured data and return only valid JSON."
+          )
+        : await (async () => {
             const client = requireOpenAI();
-            return client.chat.completions
-              .create({
-                model: "gpt-4o-mini",
-                messages: [
-                  {
-                    role: "system",
-                    content:
-                      "You are an expert at parsing resumes. Extract structured data and return only valid JSON.",
-                  },
-                  { role: "user", content: prompt },
-                ],
-                temperature: 0.3,
-                response_format: { type: "json_object" },
-              })
-              .then((completion) => {
-                const response =
-                  completion.choices[0]?.message?.content || "{}";
-                return JSON.parse(response);
-              });
+            const completion = await client.chat.completions.create({
+              model: "gpt-4o-mini",
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "You are an expert at parsing resumes. Extract structured data and return only valid JSON.",
+                },
+                { role: "user", content: prompt },
+              ],
+              temperature: 0.3,
+              response_format: { type: "json_object" },
+            });
+            const response = completion.choices[0]?.message?.content || "{}";
+            return JSON.parse(response);
           })();
 
     return {
@@ -133,6 +138,11 @@ Return only the JSON object, no markdown, no code blocks.`;
     const scoring =
       provider === "hf"
         ? await hfGenerateJson(prompt)
+        : provider === "gemini"
+        ? await geminiGenerateJson(
+            prompt,
+            "You are an expert HR recruiter. Analyze candidates objectively and provide detailed scoring."
+          )
         : await (async () => {
             const client = requireOpenAI();
             const completion = await client.chat.completions.create({
@@ -212,6 +222,11 @@ Return only the JSON object, no markdown, no code blocks.`;
     const questions =
       provider === "hf"
         ? await hfGenerateJson(prompt)
+        : provider === "gemini"
+        ? await geminiGenerateJson(
+            prompt,
+            "You are an expert interviewer. Generate relevant, insightful interview questions."
+          )
         : await (async () => {
             const client = requireOpenAI();
             const completion = await client.chat.completions.create({
@@ -300,6 +315,11 @@ Return ONLY a valid JSON object:
     const email =
       provider === "hf"
         ? await hfGenerateJson(prompt)
+        : provider === "gemini"
+        ? await geminiGenerateJson(
+            prompt,
+            "You are a professional HR communication expert. Write clear, professional, and respectful emails."
+          )
         : await (async () => {
             const client = requireOpenAI();
             const completion = await client.chat.completions.create({
@@ -354,6 +374,11 @@ Return only the JSON object, no markdown, no code blocks.`;
     const analysis =
       provider === "hf"
         ? await hfGenerateJson(prompt)
+        : provider === "gemini"
+        ? await geminiGenerateJson(
+            prompt,
+            "You are an expert at analyzing email sentiment and tone. Be objective and accurate."
+          )
         : await (async () => {
             const client = requireOpenAI();
             const completion = await client.chat.completions.create({
